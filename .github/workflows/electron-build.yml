@@ -1,0 +1,44 @@
+name: Electronデスクトップアプリビルド
+
+# 開発コンテナ（Linux）ではmacOS/Windows向けの配布物を作れないため、
+# GitHub Actionsのホストランナー上でOSごとにビルドする。
+# 署名は行わないため、初回起動時にGatekeeper/SmartScreenの警告が出る
+# （利用者向け案内はREADME等で別途案内する）。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            script: electron:build:mac
+          - os: windows-latest
+            script: electron:build:win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm test
+
+      - run: npm run ${{ matrix.script }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: league-table-${{ matrix.os }}
+          path: |
+            release/*.dmg
+            release/*.exe
+          if-no-files-found: error
