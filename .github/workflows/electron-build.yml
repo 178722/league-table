@@ -33,7 +33,16 @@ jobs:
 
       - run: npm test
 
-      - run: npm run ${{ matrix.script }}
+      - name: Build
+        shell: bash
+        run: |
+          # asarを無効化しておりnode_modulesを個別ファイルのまま配置するため、
+          # macOSランナーではファイルディスクリプタ上限（既定256）に達し署名時にEMFILEで失敗する。
+          # ビルド前に上限を引き上げる（Windowsでは影響しないため常に実行しても問題ない）。
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            ulimit -n 10240
+          fi
+          npm run ${{ matrix.script }}
 
       - uses: actions/upload-artifact@v4
         with:
