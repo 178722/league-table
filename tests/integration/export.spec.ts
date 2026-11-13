@@ -1,11 +1,18 @@
 import { test, expect } from '@playwright/test';
 import ExcelJS from 'exceljs';
+import { addEntrant, createTournament, generateCategories } from './helpers';
 
 test.describe('データ出力（要件定義書3.9）', () => {
   test('I-EXP-01: データ出力ボタン押下でExcel（.xlsx）ファイルが生成される', async ({
+    page,
     request,
   }) => {
-    const res = await request.get('/api/tournaments/volleyball/export/xlsx');
+    const tid = await createTournament(page, { name: `データ出力検証-${Date.now()}` });
+    await addEntrant(page, tid, '選手A');
+    await addEntrant(page, tid, '選手B');
+    await generateCategories(page, tid, ['カテゴリA']);
+
+    const res = await request.get(`/api/tournaments/${tid}/export/xlsx`);
     expect(res.status()).toBe(200);
     expect(res.headers()['content-type']).toContain(
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -25,20 +32,22 @@ test.describe('データ出力（要件定義書3.9）', () => {
     expect(sheetNames[0]).toBe('大会情報');
     expect(sheetNames[1]).toBe('競技情報');
     expect(sheetNames[2]).toBe('選手(チーム)');
-    // 生成済みのカテゴリ（volleyball-A・volleyball-C）のリーグ表シートがシート4以降に含まれる
+    // 生成済みのカテゴリAのリーグ表シートがシート4以降に含まれる
     expect(sheetNames.length).toBeGreaterThan(3);
   });
 
   test('I-EXP-02: データ出力ボタンは将来対応として一旦保留中のため共通ヘッダーに表示されない', async ({
     page,
   }) => {
+    const tid = await createTournament(page, { name: `データ出力非表示検証-${Date.now()}` });
+
     await page.goto('/tournaments');
     await expect(page.locator('a:has-text("データ出力"), button:has-text("データ出力")')).toHaveCount(0);
 
     await page.goto('/settings/backup');
     await expect(page.locator('a:has-text("データ出力"), button:has-text("データ出力")')).toHaveCount(0);
 
-    await page.goto('/tournaments/volleyball');
+    await page.goto(`/tournaments/${tid}`);
     await expect(page.locator('a:has-text("データ出力"), button:has-text("データ出力")')).toHaveCount(0);
   });
 });

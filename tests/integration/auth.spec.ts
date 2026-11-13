@@ -48,10 +48,27 @@ test.describe('認証（要件定義書4章セキュリティ）', () => {
     expect(store.auth.passwordHash).toMatch(/^\$2[aby]\$/); // bcrypt形式のハッシュ
   });
 
-  test('I-AUTH-05: 参加者向け画面（P1）はログインなしでアクセスできる', async ({ page }) => {
-    const res = await page.goto('/t/volleyball');
+  test('I-AUTH-05: 参加者向け画面（P1）はログインなしでアクセスできる', async ({ page, playwright }) => {
+    // このdescribe内は未認証コンテキストのため、I-AUTH-01で保存済みの管理者セッションを使って
+    // 別のAPIRequestContextから大会を作成する（P1画面確認用）
+    const adminRequest = await playwright.request.newContext({
+      baseURL: 'http://localhost:3500',
+      storageState: 'tests/integration/.auth/admin.json',
+    });
+    const createRes = await adminRequest.post('/api/tournaments', {
+      data: {
+        name: `P1画面確認用-${Date.now()}`,
+        date: '2026-01-01',
+        location: '検証会場',
+        categories: [{ key: 'A', name: 'フリー' }],
+      },
+    });
+    const { data: tournament } = await createRes.json();
+    await adminRequest.dispose();
+
+    const res = await page.goto(`/t/${tournament.id}`);
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(/\/t\/volleyball$/);
+    await expect(page).toHaveURL(new RegExp(`/t/${tournament.id}$`));
   });
 
   test('I-AUTH-06: 閲覧モードはID・パスワードなしで入れるが書き込み系操作はできない', async ({
