@@ -1,6 +1,13 @@
 import { app, BrowserWindow, dialog, Menu } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+
+// macOS 26/27のApple Siliconで、V8のJITメモリ保護切り替え（pthread_jit_write_protect_np）が
+// カーネル側の競合状態により低確率でSIGTRAPクラッシュする既知のAppleバグの回避策。
+// JITを無効化することで該当コードパス自体を踏まないようにする（electron/electron#49522、
+// https://github.com/oven-sh/bun/issues/42687 に同種の報告あり）。他のapp.*呼び出しより前に
+// 設定する必要がある。
+app.commandLine.appendSwitch('js-flags', '--jitless');
 import {
   findFreePort,
   startNextServer,
