@@ -93,8 +93,7 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.sports",
-      "identity": "-",
-      "hardenedRuntime": false
+      "identity": "-"
     },
     "win": {
       "target": "nsis"
