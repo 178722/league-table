@@ -56,7 +56,7 @@ function migrateLegacyDataDirIfNeeded(sharedDir: string): void {
 }
 
 async function createWindow(): Promise<BrowserWindow> {
-  const win = new BrowserWindow({ width: 1280, height: 800, show: true });
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: true });
   await win.loadURL(LOADING_HTML);
   return win;
 }
