@@ -16,10 +16,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
+          # macos-latestは2026年11月時点でmacos-26(Apple Silicon)プールを指しており、
+          # ランナー不足で「not acquired by Runner of type hosted」が頻発するため、
+          # 空きの多い旧世代プールに固定する（Apple Siliconビルドであることに変わりはない）。
+          - os: macos-15
             script: electron:build:mac
+            artifact: league-table-macos-latest
           - os: windows-latest
             script: electron:build:win
+            artifact: league-table-windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +54,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: league-table-${{ matrix.os }}
+          name: ${{ matrix.artifact }}
           path: |
             release/*.dmg
             release/*.exe
