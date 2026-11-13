@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, Menu } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -56,6 +56,7 @@ function migrateLegacyDataDirIfNeeded(sharedDir: string): void {
 }
 
 async function createWindow(): Promise<BrowserWindow> {
+  Menu.setApplicationMenu(null);
   const win = new BrowserWindow({ width: 1920, height: 1080, show: true });
   await win.loadURL(LOADING_HTML);
   return win;
