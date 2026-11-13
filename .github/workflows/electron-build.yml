@@ -36,11 +36,14 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          # asarを無効化しておりnode_modulesを個別ファイルのまま配置するため、
-          # macOSランナーではファイルディスクリプタ上限（既定256）に達し署名時にEMFILEで失敗する。
-          # ビルド前に上限を引き上げる（Windowsでは影響しないため常に実行しても問題ない）。
+          # node_modulesを個別ファイルのままextraResources配置しており、署名時にapp bundle配下の
+          # 全ファイルをハッシュ化するためファイルディスクリプタ上限に達しEMFILEで失敗する。
+          # ソフトリミット（ulimit -n）をいくら上げてもmacOSのシステム上限（kern.maxfiles/
+          # kern.maxfilesperproc）を超えられないため、まずsystem上限自体を引き上げる
+          # （Windowsでは影響しないため常に実行しても問題ない）。
           if [ "${{ runner.os }}" = "macOS" ]; then
-            ulimit -n 10240
+            sudo launchctl limit maxfiles 524288 1048576
+            ulimit -n 524288
           fi
           npm run ${{ matrix.script }}
 
