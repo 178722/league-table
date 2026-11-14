@@ -1,0 +1,61 @@
+name: Electronデスクトップアプリビルド
+
+# 開発コンテナ（Linux）ではmacOS/Windows向けの配布物を作れないため、
+# GitHub Actionsのホストランナー上でOSごとにビルドする。
+# 署名は行わないため、初回起動時にGatekeeper/SmartScreenの警告が出る
+# （利用者向け案内はREADME等で別途案内する）。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macos-latestは2026年11月時点でmacos-26(Apple Silicon)プールを指しており、
+          # ランナー不足で「not acquired by Runner of type hosted」が頻発するため、
+          # 空きの多い旧世代プールに固定する（Apple Siliconビルドであることに変わりはない）。
+          - os: macos-15
+            script: electron:build:mac
+            artifact: league-table-macos-latest
+          - os: windows-latest
+            script: electron:build:win
+            artifact: league-table-windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm test
+
+      - name: Build
+        shell: bash
+        run: |
+          # node_modulesを個別ファイルのままextraResources配置しており、署名時にapp bundle配下の
+          # 全ファイルをハッシュ化するためファイルディスクリプタ上限に達しEMFILEで失敗する。
+          # ソフトリミット（ulimit -n）をいくら上げてもmacOSのシステム上限（kern.maxfiles/
+          # kern.maxfilesperproc）を超えられないため、まずsystem上限自体を引き上げる
+          # （Windowsでは影響しないため常に実行しても問題ない）。
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            sudo launchctl limit maxfiles 524288 1048576
+            ulimit -n 524288
+          fi
+          npm run ${{ matrix.script }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            release/*.dmg
+            release/*.exe
+          if-no-files-found: error
